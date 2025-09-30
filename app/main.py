@@ -4,6 +4,7 @@ import qrcode
 import io
 import base64
 import httpx
+import os
 from datetime import datetime, timedelta
 from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Request
 from fastapi.responses import RedirectResponse
@@ -26,6 +27,9 @@ def read_root():
 def generate_short_code(length: int = 6) -> str:
     characters = string.ascii_letters + string.digits
     return ''.join(random.choice(characters) for _ in range(length))
+
+def get_base_url(request: Request) -> str:
+    return f"{request.url.scheme}://{request.url.netloc}"
 
 def generate_qr_code(url: str) -> str:
     qr = qrcode.QRCode(version=1, box_size=10, border=5)
@@ -54,7 +58,7 @@ async def validate_url(url: str) -> bool:
             return False
 
 @app.post("/shorten", response_model=schemas.URLResponse)
-async def shorten_url(url_data: schemas.URLCreate, db: Session = Depends(database.get_db)):
+async def shorten_url(url_data: schemas.URLCreate, request: Request, db: Session = Depends(database.get_db)):
     # Validate URL is reachable
     url_str = str(url_data.url)
     is_valid = await validate_url(url_str)
@@ -87,7 +91,8 @@ async def shorten_url(url_data: schemas.URLCreate, db: Session = Depends(databas
     db.add(db_url)
     db.commit()
     
-    short_url = f"http://localhost:8000/{short_code}"
+    base_url = get_base_url(request)
+    short_url = f"{base_url}/{short_code}"
     qr_code = generate_qr_code(short_url)
     
     return schemas.URLResponse(short_url=short_url, qr_code=qr_code)
@@ -223,7 +228,7 @@ def get_analytics(db: Session = Depends(database.get_db)):
         )
 
 @app.post("/bulk-shorten", response_model=schemas.BulkURLResponse)
-async def bulk_shorten_urls(url_data: schemas.BulkURLCreate, db: Session = Depends(database.get_db)):
+async def bulk_shorten_urls(url_data: schemas.BulkURLCreate, request: Request, db: Session = Depends(database.get_db)):
     results = []
     for url_str in url_data.urls:
         try:
@@ -244,7 +249,8 @@ async def bulk_shorten_urls(url_data: schemas.BulkURLCreate, db: Session = Depen
             db.add(db_url)
             db.commit()
             
-            short_url = f"http://localhost:8000/{short_code}"
+            base_url = get_base_url(request)
+            short_url = f"{base_url}/{short_code}"
             qr_code = generate_qr_code(short_url)
             
             results.append(schemas.URLResponse(short_url=short_url, qr_code=qr_code))
@@ -254,7 +260,7 @@ async def bulk_shorten_urls(url_data: schemas.BulkURLCreate, db: Session = Depen
     return schemas.BulkURLResponse(results=results)
 
 @app.post("/bulk-upload")
-async def bulk_upload(file: UploadFile = File(...), db: Session = Depends(database.get_db)):
+async def bulk_upload(file: UploadFile = File(...), request: Request = None, db: Session = Depends(database.get_db)):
     if not file.filename.endswith('.csv'):
         raise HTTPException(status_code=400, detail="Only CSV files allowed")
     
@@ -281,7 +287,8 @@ async def bulk_upload(file: UploadFile = File(...), db: Session = Depends(databa
                 db.add(db_url)
                 db.commit()
                 
-                short_url = f"http://localhost:8000/{short_code}"
+                base_url = get_base_url(request)
+                short_url = f"{base_url}/{short_code}"
                 qr_code = generate_qr_code(short_url)
                 
                 results.append({"original": url_str, "short_url": short_url, "qr_code": qr_code})
