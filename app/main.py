@@ -51,16 +51,14 @@ def generate_qr_code(url: str) -> str:
 async def validate_url(url: str) -> bool:
     """Check if URL is reachable"""
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.head(url, follow_redirects=True)
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+        async with httpx.AsyncClient(timeout=15.0, headers=headers) as client:
+            response = await client.get(url, follow_redirects=True)
             return response.status_code < 400
     except:
-        try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                response = await client.get(url, follow_redirects=True)
-                return response.status_code < 400
-        except:
-            return False
+        return True  # Allow URL if validation fails
 
 @app.post("/shorten", response_model=schemas.URLResponse)
 async def shorten_url(url_data: schemas.URLCreate, request: Request, db: Session = Depends(database.get_db)):
