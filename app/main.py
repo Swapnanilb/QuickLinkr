@@ -199,13 +199,19 @@ def get_analytics(db: Session = Depends(database.get_db)):
             "original_url": url.original[:50] + "..." if len(url.original) > 50 else url.original
         } for url in top_urls]
         
-        # Daily clicks for last 7 days (simplified)
+        # Daily clicks for last 7 days (real-time calculation)
         daily_clicks = []
         for i in range(7):
             date = (datetime.utcnow() - timedelta(days=i)).date()
+            try:
+                day_clicks = db.query(models.ClickLog).filter(
+                    func.date(models.ClickLog.clicked_at) == date
+                ).count()
+            except Exception:
+                day_clicks = 0
             daily_clicks.append({
                 "date": date.strftime("%Y-%m-%d"),
-                "clicks": 0  # Simplified for now
+                "clicks": day_clicks
             })
         
         return schemas.AnalyticsData(
