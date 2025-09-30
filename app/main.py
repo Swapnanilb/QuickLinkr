@@ -62,11 +62,8 @@ async def validate_url(url: str) -> bool:
 
 @app.post("/shorten", response_model=schemas.URLResponse)
 async def shorten_url(url_data: schemas.URLCreate, request: Request, db: Session = Depends(database.get_db)):
-    # Validate URL is reachable
+    # Convert URL to string
     url_str = str(url_data.url)
-    is_valid = await validate_url(url_str)
-    if not is_valid:
-        raise HTTPException(status_code=400, detail="URL is not reachable or invalid")
     
     # Use custom code if provided
     if url_data.custom_code:
@@ -235,10 +232,7 @@ async def bulk_shorten_urls(url_data: schemas.BulkURLCreate, request: Request, d
     results = []
     for url_str in url_data.urls:
         try:
-            # Validate URL first
-            is_valid = await validate_url(url_str)
-            if not is_valid:
-                continue
+            # Skip validation for bulk operations
                 
             # Generate unique short code
             while True:
@@ -275,10 +269,7 @@ async def bulk_upload(file: UploadFile = File(...), request: Request = None, db:
         url_str = url_str.strip()
         if url_str and url_str.startswith('http'):
             try:
-                # Validate URL first
-                is_valid = await validate_url(url_str)
-                if not is_valid:
-                    continue
+                # Skip validation for bulk operations
                     
                 while True:
                     short_code = generate_short_code()

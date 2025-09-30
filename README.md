@@ -7,7 +7,7 @@ A smart, feature-rich URL shortener built with FastAPI that transforms long URLs
 ### Core Features
 - ✅ **URL Shortening** - Convert long URLs to short, memorable codes
 - ✅ **Custom Short Codes** - Choose your own personalized short codes
-- ✅ **URL Validation** - Automatically validates URL reachability before shortening
+- ✅ **Universal URL Support** - Works with all websites including protected/restricted sites
 - ✅ **QR Code Generation** - Auto-generate QR codes for all shortened URLs
 - ✅ **URL Expiration** - Set expiration dates (1 day to 1 year or never)
 
@@ -161,7 +161,7 @@ Clear all URL history
 
 ### Key Features
 - **Gradient Design** - Modern, professional appearance
-- **Real-time Validation** - Instant feedback on URL validity
+- **Universal Compatibility** - Works with all websites and URL formats
 - **QR Code Display** - Visual QR codes for easy sharing
 - **Statistics Cards** - Quick overview of key metrics
 - **Interactive Charts** - Visual representation of click data
