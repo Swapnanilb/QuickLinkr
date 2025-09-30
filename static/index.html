@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>QuickLinkr - Smart URL Shortener</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .main-container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 { font-size: 2.5em; margin-bottom: 10px; }
+        .header p { opacity: 0.9; font-size: 1.1em; }
+        .tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .tab {
+            flex: 1;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            border-bottom: 3px solid transparent;
+        }
+        .tab:hover { background: #e9ecef; }
+        .tab.active {
+            background: white;
+            border-bottom-color: #667eea;
+            color: #667eea;
+        }
+        .tab-content { display: none; padding: 30px; }
+        .tab-content.active { display: block; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #495057; }
+        input[type="url"], input[type="text"], textarea {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: transform 0.2s ease;
+            margin: 5px;
+        }
+        .btn:hover { transform: translateY(-2px); }
+        .btn-success { background: linear-gradient(135deg, #28a745 0%, #20c997 100%); }
+        .btn-danger { background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%); }
+        .btn-secondary { background: linear-gradient(135deg, #6c757d 0%, #495057 100%); }
+        .result {
+            margin: 20px 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            border-radius: 10px;
+            border-left: 5px solid #28a745;
+        }
+        .error {
+            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+            color: #721c24;
+            border-left-color: #dc3545;
+        }
+        .qr-code {
+            max-width: 150px;
+            margin: 15px 0;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .history-item {
+            background: white;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 10px;
+            border-left: 5px solid #667eea;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            transition: transform 0.2s ease;
+        }
+        .history-item:hover { transform: translateY(-2px); }
+        .bulk-result {
+            background: white;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            flex: 1;
+            margin: 0 10px;
+        }
+        .stat-number { font-size: 2em; font-weight: bold; color: #667eea; }
+        .stat-label { color: #6c757d; margin-top: 5px; }
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+        }
+        .empty-state i { font-size: 3em; margin-bottom: 20px; }
+        @media (max-width: 768px) {
+            .tabs { flex-direction: column; }
+            .stats { flex-direction: column; }
+            .stat-card { margin: 10px 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <div class="header">
+            <h1>⚡ QuickLinkr</h1>
+            <p>Transform long URLs into smart, shareable links with analytics</p>
+        </div>
+        
+        <div class="tabs">
+            <div class="tab active" onclick="showTab('single')">✨ Single URL</div>
+            <div class="tab" onclick="showTab('bulk')">📦 Bulk URLs</div>
+            <div class="tab" onclick="showTab('history')">📊 History</div>
+            <div class="tab" onclick="showTab('analytics')">📈 Analytics</div>
+        </div>
+        
+        <!-- Single URL Tab -->
+        <div id="single" class="tab-content active">
+            <div class="form-group">
+                <label for="urlInput">🌐 Enter your long URL</label>
+                <input type="url" id="urlInput" placeholder="https://example.com/very-long-url-here" required>
+            </div>
+            <div class="form-group">
+                <label for="customCode">🎯 Custom short code (optional)</label>
+                <input type="text" id="customCode" placeholder="my-custom-code">
+            </div>
+            <div class="form-group">
+                <label for="expirationDays">⏰ Expiration (optional)</label>
+                <select id="expirationDays" style="width: 100%; padding: 15px; border: 2px solid #e9ecef; border-radius: 10px; font-size: 16px;">
+                    <option value="">Never expires</option>
+                    <option value="1">1 day</option>
+                    <option value="7">1 week</option>
+                    <option value="30">1 month</option>
+                    <option value="90">3 months</option>
+                    <option value="365">1 year</option>
+                </select>
+            </div>
+            <button class="btn" onclick="shortenUrl()" id="shortenBtn">🚀 Shorten URL</button>
+            <div id="result" style="display:none;"></div>
+        </div>
+        
+        <!-- Bulk URLs Tab -->
+        <div id="bulk" class="tab-content">
+            <div class="form-group">
+                <label for="bulkUrls">📝 Enter multiple URLs (one per line)</label>
+                <textarea id="bulkUrls" placeholder="https://example1.com&#10;https://example2.com&#10;https://example3.com" rows="6"></textarea>
+            </div>
+            <button class="btn" onclick="bulkShorten()">⚡ Shorten All URLs</button>
+            
+            <hr style="margin: 30px 0; border: none; border-top: 1px solid #dee2e6;">
+            
+            <div class="form-group">
+                <label for="csvFile">📄 Or upload a CSV file</label>
+                <input type="file" id="csvFile" accept=".csv" style="padding: 10px; border: 2px dashed #dee2e6; border-radius: 10px;">
+            </div>
+            <button class="btn btn-secondary" onclick="uploadCSV()">📤 Upload & Process</button>
+            
+            <div id="bulkResult" style="display:none;"></div>
+        </div>
+        
+        <!-- History Tab -->
+        <div id="history" class="tab-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3>📊 Recent URLs</h3>
+                <div>
+                    <button class="btn btn-secondary" onclick="loadHistory()">🔄 Refresh</button>
+                    <button class="btn btn-danger" onclick="clearHistory()">🗑️ Clear All</button>
+                </div>
+            </div>
+            <div id="historyList"></div>
+        </div>
+        
+        <!-- Analytics Tab -->
+        <div id="analytics" class="tab-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3>📈 Analytics Dashboard</h3>
+                <button class="btn btn-secondary" onclick="loadAnalytics()">🔄 Refresh</button>
+            </div>
+            <div id="analyticsData"></div>
+        </div>
+    </div>
+
+    <script>
+        function showTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+            if (tabName === 'history') loadHistory();
+            if (tabName === 'analytics') loadAnalytics();
+        }
+
+        async function shortenUrl() {
+            const url = document.getElementById('urlInput').value;
+            const customCode = document.getElementById('customCode').value;
+            const expirationDays = document.getElementById('expirationDays').value;
+            if (!url) return;
+
+            // Show loading state
+            const btn = document.getElementById('shortenBtn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '⏳ Validating URL...';
+            btn.disabled = true;
+
+            try {
+                const requestBody = { url: url, custom_code: customCode || null };
+                if (expirationDays) {
+                    requestBody.expires_in_days = parseInt(expirationDays);
+                }
+                
+                const response = await fetch('/shorten', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody)
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const shortCode = data.short_url.split('/').pop();
+                    document.getElementById('result').innerHTML = `
+                        <div class="result">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                                <div>
+                                    <strong>✅ Short URL Created!</strong><br>
+                                    <a href="${data.short_url}" target="_blank" style="font-size: 1.2em; color: #667eea;">${shortCode}</a>
+                                    <div style="font-size: 0.9em; color: #6c757d; margin-top: 5px;">Full URL: ${data.short_url}</div>
+                                </div>
+                                <button class="btn btn-success" onclick="copyToClipboard('${data.short_url}')">📋 Copy</button>
+                            </div>
+                            <div style="text-align: center;">
+                                <strong>📱 QR Code</strong><br>
+                                <img src="data:image/png;base64,${data.qr_code}" class="qr-code" alt="QR Code">
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    const errorText = await response.text();
+                    let errorMsg = 'Unknown error';
+                    try {
+                        const errorData = JSON.parse(errorText);
+                        if (errorData.detail) {
+                            if (Array.isArray(errorData.detail)) {
+                                errorMsg = errorData.detail[0].msg || 'Invalid URL format';
+                            } else {
+                                errorMsg = errorData.detail;
+                            }
+                        }
+                    } catch {
+                        errorMsg = errorText || errorMsg;
+                    }
+                    document.getElementById('result').innerHTML = `
+                        <div class="result error">❌ Error: ${errorMsg}</div>
+                    `;
+                }
+                document.getElementById('result').style.display = 'block';
+            } catch (error) {
+                document.getElementById('result').innerHTML = `
+                    <div class="result error">❌ Error: Make sure the FastAPI server is running on port 8000</div>
+                `;
+                document.getElementById('result').style.display = 'block';
+            } finally {
+                // Reset button state
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        async function bulkShorten() {
+            const urls = document.getElementById('bulkUrls').value.split('\n').filter(u => u.trim());
+            if (!urls.length) return;
+
+            try {
+                const response = await fetch('/bulk-shorten', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ urls: urls })
+                });
+                
+                const data = await response.json();
+                let html = '<h4>Results:</h4>';
+                data.results.forEach((result, i) => {
+                    html += `
+                        <div class="bulk-result">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <strong>🔗 URL ${i+1}:</strong><br>
+                                    <a href="${result.short_url}" target="_blank">${result.short_url}</a>
+                                </div>
+                                <button class="btn btn-success" onclick="copyToClipboard('${result.short_url}')">📋 Copy</button>
+                            </div>
+                        </div>
+                    `;
+                });
+                document.getElementById('bulkResult').innerHTML = html;
+                document.getElementById('bulkResult').style.display = 'block';
+            } catch (error) {
+                document.getElementById('bulkResult').innerHTML = `<div class="result error">Error: ${error.message}</div>`;
+                document.getElementById('bulkResult').style.display = 'block';
+            }
+        }
+
+        async function uploadCSV() {
+            const fileInput = document.getElementById('csvFile');
+            if (!fileInput.files[0]) return;
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            try {
+                const response = await fetch('/bulk-upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                let html = `<h4>${data.message}</h4>`;
+                data.results.forEach((result, i) => {
+                    html += `
+                        <div class="bulk-result">
+                            <div style="margin-bottom: 10px;">
+                                <strong>📄 Original:</strong> <span style="color: #6c757d;">${result.original}</span><br>
+                                <strong>🔗 Short:</strong> <a href="${result.short_url}" target="_blank">${result.short_url}</a>
+                            </div>
+                            <button class="btn btn-success" onclick="copyToClipboard('${result.short_url}')">📋 Copy</button>
+                        </div>
+                    `;
+                });
+                document.getElementById('bulkResult').innerHTML = html;
+                document.getElementById('bulkResult').style.display = 'block';
+            } catch (error) {
+                document.getElementById('bulkResult').innerHTML = `<div class="result error">Error: ${error.message}</div>`;
+                document.getElementById('bulkResult').style.display = 'block';
+            }
+        }
+
+        async function loadHistory() {
+            try {
+                const response = await fetch('/api/history');
+                const data = await response.json();
+                
+                if (data.length === 0) {
+                    document.getElementById('historyList').innerHTML = `
+                        <div class="empty-state">
+                            <div style="font-size: 3em; margin-bottom: 20px;">📭</div>
+                            <h3>No URLs yet</h3>
+                            <p>Start shortening URLs to see them here!</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                let html = `
+                    <div class="stats">
+                        <div class="stat-card">
+                            <div class="stat-number">${data.length}</div>
+                            <div class="stat-label">Total URLs</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">${data.reduce((sum, item) => sum + item.clicks, 0)}</div>
+                            <div class="stat-label">Total Clicks</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">${Math.round(data.reduce((sum, item) => sum + item.clicks, 0) / data.length) || 0}</div>
+                            <div class="stat-label">Avg Clicks</div>
+                        </div>
+                    </div>
+                `;
+                
+                data.forEach(item => {
+                    html += `
+                        <div class="history-item">
+                            <div style="display: flex; justify-content: space-between; align-items: start;">
+                                <div style="flex: 1;">
+                                    <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                                        <strong style="color: #667eea;">🔗 ${item.short_code}</strong>
+                                        <span style="background: #e9ecef; padding: 4px 8px; border-radius: 15px; font-size: 0.8em; margin-left: 10px;">
+                                            👆 ${item.clicks} clicks
+                                        </span>
+                                    </div>
+                                    <div style="color: #6c757d; word-break: break-all;">
+                                        📄 ${item.original_url}
+                                    </div>
+                                </div>
+                                <button class="btn btn-success" onclick="copyToClipboard('http://localhost:8000/${item.short_code}')">📋 Copy</button>
+                            </div>
+                        </div>
+                    `;
+                });
+                document.getElementById('historyList').innerHTML = html;
+            } catch (error) {
+                document.getElementById('historyList').innerHTML = `<div class="result error">❌ Error loading history</div>`;
+            }
+        }
+        
+        async function clearHistory() {
+            if (!confirm('🗑️ Are you sure you want to clear all history? This cannot be undone!')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/history', {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    document.getElementById('historyList').innerHTML = `
+                        <div class="result">
+                            ✅ History cleared successfully!
+                        </div>
+                    `;
+                    setTimeout(loadHistory, 1500);
+                } else {
+                    throw new Error('Failed to clear history');
+                }
+            } catch (error) {
+                document.getElementById('historyList').innerHTML = `<div class="result error">❌ Error clearing history</div>`;
+            }
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                // Create a temporary notification
+                const notification = document.createElement('div');
+                notification.innerHTML = '✅ Copied to clipboard!';
+                notification.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+                    color: white;
+                    padding: 15px 25px;
+                    border-radius: 10px;
+                    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+                    z-index: 1000;
+                    font-weight: 600;
+                `;
+                document.body.appendChild(notification);
+                setTimeout(() => {
+                    notification.remove();
+                }, 2000);
+            });
+        }
+
+        async function loadAnalytics() {
+            try {
+                const response = await fetch('/api/analytics');
+                const data = await response.json();
+                
+                let html = `
+                    <div class="stats">
+                        <div class="stat-card">
+                            <div class="stat-number">${data.total_urls}</div>
+                            <div class="stat-label">Total URLs</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">${data.total_clicks}</div>
+                            <div class="stat-label">Total Clicks</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">${data.clicks_today}</div>
+                            <div class="stat-label">Clicks Today</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">${data.clicks_this_week}</div>
+                            <div class="stat-label">Clicks This Week</div>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 20px; margin-top: 30px;">
+                        <div style="flex: 1;">
+                            <h4>🏆 Top Performing URLs</h4>
+                            <div style="background: white; border-radius: 10px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+                `;
+                
+                if (data.top_urls.length === 0) {
+                    html += '<p style="color: #6c757d; text-align: center;">No URLs yet</p>';
+                } else {
+                    data.top_urls.forEach((url, i) => {
+                        html += `
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f0f0f0;">
+                                <div>
+                                    <strong>🔗 ${url.short_code}</strong><br>
+                                    <small style="color: #6c757d;">${url.original_url}</small>
+                                </div>
+                                <span style="background: #667eea; color: white; padding: 5px 10px; border-radius: 15px; font-size: 0.8em;">
+                                    ${url.clicks} clicks
+                                </span>
+                            </div>
+                        `;
+                    });
+                }
+                
+                html += `
+                            </div>
+                        </div>
+                        
+                        <div style="flex: 1;">
+                            <h4>📈 Daily Clicks (Last 7 Days)</h4>
+                            <div style="background: white; border-radius: 10px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+                `;
+                
+                const maxClicks = Math.max(...data.daily_clicks.map(d => d.clicks), 1);
+                data.daily_clicks.forEach(day => {
+                    const barHeight = (day.clicks / maxClicks) * 100;
+                    const date = new Date(day.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                    html += `
+                        <div style="display: flex; align-items: end; margin-bottom: 15px;">
+                            <div style="width: 80px; font-size: 0.8em; color: #6c757d;">${date}</div>
+                            <div style="flex: 1; background: #f8f9fa; height: 30px; border-radius: 5px; position: relative; margin: 0 10px;">
+                                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); height: 100%; width: ${barHeight}%; border-radius: 5px;"></div>
+                            </div>
+                            <div style="width: 30px; text-align: right; font-weight: bold; color: #667eea;">${day.clicks}</div>
+                        </div>
+                    `;
+                });
+                
+                html += '</div></div></div>';
+                
+                document.getElementById('analyticsData').innerHTML = html;
+            } catch (error) {
+                document.getElementById('analyticsData').innerHTML = `<div class="result error">❌ Error loading analytics</div>`;
+            }
+        }
+
+        document.getElementById('urlInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') shortenUrl();
+        });
+    </script>
+</body>
+</html>
