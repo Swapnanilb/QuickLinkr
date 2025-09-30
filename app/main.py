@@ -18,7 +18,8 @@ models.Base.metadata.create_all(bind=database.engine)
 
 app = FastAPI(title="QuickLinkr API", description="Smart URL shortener with analytics and QR codes")
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
+static_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
+app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 @app.get("/")
 def read_root():
