@@ -6,15 +6,6 @@
 
 QuickLinkr is a comprehensive URL shortening service that demonstrates advanced web development capabilities including real-time analytics, bulk processing, QR code generation, and a modern responsive interface.
 
-## 🎥 Live Demo
-
-### Application Walkthrough
-https://github.com/user-attachments/assets/demo-video.mp4
-
-*Complete demonstration of all features including URL shortening, analytics, and bulk processing*
-
-> **Note**: If the video doesn't play above, you can download it from `static/assets/Demo_Video.mkv`
-
 ## 🖼️ Application Screenshots
 
 ### Single URL Shortening Interface
